@@ -635,6 +635,14 @@ impl Client {
         self.cluster.member_promote(id).await
     }
 
+    #[cfg(feature = "v3_5")]
+    /// Lists members.
+    #[inline]
+    pub async fn member_list(&mut self, linearizable: bool) -> Result<MemberListResponse> {
+        self.cluster.member_list(linearizable).await
+    }
+
+    #[cfg(not(feature = "v3_5"))]
     /// Lists members.
     #[inline]
     pub async fn member_list(&mut self) -> Result<MemberListResponse> {
@@ -1387,6 +1395,7 @@ mod tests {
         Ok(())
     }
 
+    #[cfg(not(feature = "v3_5"))]
     #[ignore]
     #[tokio::test]
     async fn test_cluster() -> Result<()> {
@@ -1412,10 +1421,68 @@ mod tests {
         Ok(())
     }
 
+    #[cfg(not(feature = "v3_5"))]
     #[tokio::test]
     async fn test_move_leader() -> Result<()> {
         let mut client = get_client().await?;
         let resp = client.member_list().await?;
+        let member_list = resp.members();
+
+        let resp = client.status().await?;
+        let leader_id = resp.leader();
+        println!("status {:?}, leader_id {:?}", resp, resp.leader());
+
+        let mut member_id = leader_id;
+        for member in member_list {
+            println!("member_id {:?}, name is {:?}", member.id(), member.name());
+            if member.id() != leader_id {
+                member_id = member.id();
+                break;
+            }
+        }
+
+        let resp = client.move_leader(member_id).await?;
+        let header = resp.header();
+        if member_id == leader_id {
+            assert!(header.is_none());
+        } else {
+            assert!(header.is_some());
+        }
+
+        Ok(())
+    }
+
+    #[cfg(feature = "v3_5")]
+    #[ignore]
+    #[tokio::test]
+    async fn test_cluster() -> Result<()> {
+        let node1 = "localhost:2520";
+        let node2 = "localhost:2530";
+        let node3 = "localhost:2540";
+        let mut client = get_client().await?;
+        let resp = client
+            .member_add([node1], Some(MemberAddOptions::new().with_is_learner()))
+            .await?;
+        let id1 = resp.member().unwrap().id();
+
+        let resp = client.member_add([node2], None).await?;
+        let id2 = resp.member().unwrap().id();
+        let resp = client.member_add([node3], None).await?;
+        let id3 = resp.member().unwrap().id();
+
+        let resp = client.member_list(true).await?;
+        let members: Vec<_> = resp.members().iter().map(|member| member.id()).collect();
+        assert!(members.contains(&id1));
+        assert!(members.contains(&id2));
+        assert!(members.contains(&id3));
+        Ok(())
+    }
+
+    #[cfg(feature = "v3_5")]
+    #[tokio::test]
+    async fn test_move_leader() -> Result<()> {
+        let mut client = get_client().await?;
+        let resp = client.member_list(true).await?;
         let member_list = resp.members();
 
         let resp = client.status().await?;

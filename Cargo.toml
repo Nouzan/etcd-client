@@ -15,6 +15,7 @@ keywords = ["etcd", "v3", "api", "client", "async"]
 tls = ["tonic/tls"]
 tls-roots = ["tls", "tonic/tls-roots"]
 pub-response-field = ["visible"]
+v3_5 = []
 
 [dependencies]
 tonic = "0.7.2"

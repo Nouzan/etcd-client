@@ -1038,6 +1038,8 @@ impl UserAddOptions {
         Self(PbAuthUserAddRequest {
             name: String::new(),
             password: String::new(),
+            #[cfg(feature = "v3_5")]
+            hashed_password: String::new(),
             options: Some(PbUserAddOptions { no_password: false }),
         })
     }
@@ -1263,6 +1265,8 @@ impl UserChangePasswordOptions {
         Self(PbAuthUserChangePasswordRequest {
             name,
             password: new_password,
+            #[cfg(feature = "v3_5")]
+            hashed_password: String::new(),
         })
     }
 }

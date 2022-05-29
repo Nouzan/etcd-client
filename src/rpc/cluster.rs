@@ -74,6 +74,19 @@ impl ClusterClient {
         Ok(MemberUpdateResponse::new(resp))
     }
 
+    #[cfg(feature = "v3_5")]
+    /// Lists all the members in the cluster.
+    #[inline]
+    pub async fn member_list(&mut self, linearizable: bool) -> Result<MemberListResponse> {
+        let resp = self
+            .inner
+            .member_list(PbMemberListRequest { linearizable })
+            .await?
+            .into_inner();
+        Ok(MemberListResponse::new(resp))
+    }
+
+    #[cfg(not(feature = "v3_5"))]
     /// Lists all the members in the cluster.
     #[inline]
     pub async fn member_list(&mut self) -> Result<MemberListResponse> {
